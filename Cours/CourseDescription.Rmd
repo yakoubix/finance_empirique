@@ -1,0 +1,205 @@
+---
+output: 
+  pdf_document:
+    keep_tex: true
+    fig_caption: yes
+    latex_engine: pdflatex
+    includes:
+      in_header: preamble.tex
+geometry: margin=1in
+
+bibliography: ../library.bib
+csl: ../apa.csl
+nocite: |
+  @Wurtz2015
+
+title: "Gestion de Portefeuille"
+author: Patrick Hénaff
+date: "Février-Mars 2021"
+email: "pa.henaff@gmail.com"
+
+fontfamily: mathpazo
+fontsize: 11pt
+header-includes:
+   - \linespread{1.05}
+   - \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE, cache=F, message=F, warning=F, results="hide"}
+knitr::opts_chunk$set(cache=TRUE)
+knitr::opts_chunk$set(fig.path='figs/')
+knitr::opts_chunk$set(cache.path='_cache/')
+knitr::opts_chunk$set(warning=F, message=F)
+```
+
+# Description du cours
+
+Les conditions de marché actuelles rendent particulièrement pertinentes les méthodes quantitatives de gestion de portefeuille. Dans le contexte Français, la baisse des taux met en cause la viabilité des fonds en euros des contrats d'assurance-vie, un des piliers de l'épargne des Français. Un objectif de ce cours sera de montrer comment la gestion quantitative peut apporter un élément de réponse à ce problème.
+
+Ce cours présente un panorama de la théorie et de la pratique de gestion quantitative de portefeuille. On abordera la gestion d'un portefeuille d'actions, et aussi, plus brièvement, la gestion obligataire quantitative. 
+
+# Manuel
+
+Le cours utilise le manuel de Bernhard Pfaff "Financial Risk Modeling and Portfolio Optimization with R", 2ème édition [@Pfaff2016].
+Le manuel est disponible, en autres, sur Amazon.
+
+# Organisation pratique
+
+Le cours ayant lieu "à distance", un certain nombre de dispositions pratiques doivent être mises en place.
+
+Le principe général du cours est celui de la "classe inversée". Il y a 8 modules dans le cours, et chacun s'articule selon le même schéma:
+
+- avant le cours, chacun étudie les documents mis à disposition (articles, chapitre du manuel)
+
+- le module commence par une video-conférence pour résumer le sujet et répondre aux questions,
+
+- en groupe de 3 ou 4, les étudiants réalisent ensuite les travaux pratiques propres à chaque module, sous forme de notebooks "Rmarkdown". Tous les documents nécessaires se trouveront sur GitHub en temps utile, dans le dépot public \texttt{phenaff/TB-GestionPort}.
+
+- après chaque journée (deux modules), le travail est restitué lors d'une visio-conférence, deux ou trois groupes à la fois (on verra à l'usage), soit une dizaine étudiants et l'enseignant. Chaque groupe désigne un "ambassadeur" pour chaque visio-conférence, charge à elle ou lui de relayer les questions du groupe dans un premier temps. Tout le monde aura bien sûr l'occasion de s'exprimer. 
+
+# Evaluation
+
+Chaque groupe choisit de rendre 4 TP parmi les 8 proposés, chaque TP comptant pour 25\% de la note, qui sera commune à tous les membres du groupe. Les TP sont à réaliser en notebook "Rmarkdown" [@Xie2019] et à rendre au format .pdf. Vous rendrez également le code source .rmd. "Rmarkdown" est une technologie très utile à maîtriser, car elle permet de produire des analyses *reproduisibles*, avec une mise en page de grande qualité. La présentation et mise en page des documents devra donc être soignée, et sera prise en compte dans l'évaluation. Les TP sont à rendre 10 jours après le module correspondant.
+
+# Roles dans chaque groupe de travail
+
+Comme indiqué plus haut, à l'occasion de chaque vidéo conférence, chaque groupe désigne un "ambassadeur" chargé de relayer les commentaires ou questions du groupe. De plus, pour chaque TP donnant lieu à une évaluation, chaque groupe désigne un "maître du temps" chargé de s'assurer que le travail soit rendu en temps et en heure.
+
+# Objectifs du cours
+
+1. Approfondir les propriétés statistiques des séries chronologiques financières.
+
+2. Maitriser le modèle classique "moyenne-variance" de Markowitz[@Markowitz1952], et comprendre ses limites. Savoir le mettre en oeuvre et analyser les résultats. Appréhender comment le modèle de Black-Litterman répond à certaines limitations du modèle de Markowitz. 
+
+3. Comprendre l'apport de l'approche factorielle en gestion de portefeuille.
+
+4. Appréhender les nouvelles approches de gestion fondées sur le "risk budgeting".
+
+5. Réaliser un rapide survol des méthodes de gestion de portefeuille obligataire: immunizaion et dédication.
+
+# Logiciel
+
+A chaque séance, on utilisera le logiciel R/Rstudio/Rmarkdown pour mettre immédiatement en pratique les concepts présentés. Ce logiciel est devenu un outil incontournable en finance quantitative, et en particulier en gestion de portefeuille. 
+
+# Avant la première séance
+
+- Si ce n'est pas le cas, se familiariser avec le système de gestion de version Git et Github. Installer un outil de gestion de version tel que SmartGit. Je suggère à chaque groupe de travail de créer un dépot privé sur GitHub.
+
+- installez R, RStudio, Rmarkdown, TinyTex et vérifiez que votre installation est opérationnelle en exécutant le document \texttt{TP-1/time.series.demo.Rmd}. Vérifiez votre maîtrise de R en faisant les exercices proposés dans ce document.
+
+# Programme
+
+**Avant** chaque module, il est indispensable d'étudier les documents fournis.
+
+## Module 1 (10/2): Séries chronologiques financières [@Cont2001]
+
+Dans cette séance introductive, on passera en revue les "faits stylisés" caractéristiques des séries chronologiques financières, et les méthodes de calcul de
+la covariance entre les actifs financiers.
+
+Documents à lire avant le cours:
+
+- Article de R. Cont (2001)
+- Note de cours "conditional probability"
+- Chapitre 3 de Pfaff (2016)
+
+TP 1:
+
+- Observation des faits stylisés.
+- Estimation de quelques distributions et modèles dynamiques.
+- Estimation de la corrélation entre séries.
+
+## Module 2 (10/2): La théorie classique [@Markowitz1952]
+
+On considère ici le travail d'Harry Markowitz, qui établit les fondements de la gestion quantitative. Ce modèle est important car il a défini le vocabulaire et les concepts de base qui sont toujours d'actualité. 
+
+Documents à lire avant le cours:
+
+- Article de Markowitz (1952)
+- Note de cours
+- Chapitre 5 de Pfaff (2016)
+
+
+TP 2:
+
+- Construction d'une frontière efficiente.
+- Construction d'un portefeuille optimal moyenne/variance.
+
+## Module 3 (9/3): Modèle de Treynor-Black et la distinction "gestion active/gestion passive" [@Treynor1973].
+
+Le modèle de Treynor-Black est une étape importante, car il est à l'origine de la distinction  "gestion active/gestion passive".
+
+Documents à lire avant le cours:
+
+- Article de Treynor & Black (1973)
+- Chapitre 5 de Pfaff (2016)
+
+
+TP 3:
+
+- Construction d'un modèle à 1 facteur
+- Optimisation de portefeuille selon Treynor-Black
+
+## Module 4 (9/3): Gestion de portefeuille et risque de modélisation. [@Boyle2012; @He2005]
+
+Identification du "risque de modélisation" dans le cadre du modèle moyenne/variance. Tests statistiques, application à la construction de portefeuilles. le modèle de Black-Litterman vu comme stratégie pour limiter le risque de modélisation.
+
+Documents à lire avant le cours:
+
+- Chapitre 10 de Pfaff (2016)
+
+TP-4:
+
+- Modèle M/V et Black-Litterman.
+
+
+## Module 4 (9/3): L'environnement de la gestion de portefeuille.
+
+- OPCVM et ETF
+- Frais, performance, flux de fonds, hedge funds
+
+
+
+## Module 5 (10/3): Approche factorielle [@Fama1992; @Fama1993; @Harvey2016a]
+
+- Définition et identification des facteurs
+- Estimation et limites statistiques
+- Modèles d'allocation factoriels
+
+TP-5:
+
+- Construction de portefeuille à partir du modèle à trois facteurs de Fama-French.
+
+## Module 6 (10/3): Méthodes récentes de gestion de portefeuille, "risk budgeting" [@Bruder2012]
+
+- Modèle 1/N
+- Modèle "risk parity"
+
+TP-6:
+
+- calcul de portefeuilles selon des méthodes de "risk budgeting"
+
+## Module 7 (23/3): Rendement et risque des obligations [@Henaff2012].
+
+Rappel des principes de valorisation et de mesure de risque des obligations:
+- Courbe des taux.
+- Notion de spread.
+- Caractérisation du risque de taux.
+
+TP-7:
+
+- Calculs obligataires
+- Estimation d'une courbe zero-coupon
+- Calcul de spread obligataire
+
+## Module 8 (23/3): Gestion de portefeuille obligataire: Immunisation et dédication [@Henaff2012].
+
+- Survol du problème de gestion obligataire et des approches classiques: immunisation et dédication.
+
+TP-8:
+
+- Construction d'un portefeuille obligataire par programmation linéaire.
+
+# Bibliographie
+
+
+
