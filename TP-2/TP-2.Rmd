@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r load-libraries, include=FALSE, echo=TRUE}
 library(quantmod)
+library(quadprog)
 library(xts)
 library(hornpa)
 library(lubridate)
@@ -52,9 +53,9 @@ source(file.path(get.src.folder(), 'FileUtils.R'))
 
 ## Séries de rendement quatidien pour 11 valeurs:
 
-```{r, eval=TRUE, echo=TRUE, warning=FALSE}
-daily.ret.file <- file.path(get.data.folder(), "daily.ret.rda")
-load(daily.ret.file)
+```{r, eval=TRUE, echo=TRUE, warning=FALSE, results='asis'}
+daily.ret.file <- file.path(get.data.folder(), "daily.ret.rda") 
+load(daily.ret.file) 
 kable(table.Stats(daily.ret), "latex", booktabs=T) %>% kable_styling(latex_options="scale_down")
 ```
 
@@ -121,7 +122,7 @@ sigma.1.t <- sqrt(t(w.t) %*% sigma.2 %*% w.t)
 ```
 
 
-``````{r, fig-4, warning=FALSE, echo=FALSE, fig.width=20, fig.cap="frontieres"}
+``````{r, fig-3, warning=FALSE, echo=FALSE, fig.width=20, fig.cap="frontieres"}
 plot(sigma.1.frontier, mean.1.frontier, type="b", pch=1, cex = .7,
      ylim=c(0, max(mean.1.frontier)), xlim=c(0, max(sigma.1.frontier)),
      xlab=expression(sigma.1), ylab=expression(mean.1), cex.lab = cex.val, bty='n')
