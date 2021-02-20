@@ -176,10 +176,9 @@ mu.star.v  <- seq(from=mu.free, to=0.3, length.out=30)
 n <- length(mean.1)
 optim.with.rf <- function(mu.star) {
 A.sum <- matrix(mean.1-mu.free, ncol=1)
-A.mat <- cbind(A.sum, 
-               rep(1, n),
+A.mat <- cbind(A.sum,
                diag(n),-diag(n))
-b <- c(mu.star-rate, 0, rep(0, n),rep(-0.37,n))
+b <- c(mu.star-rate, rep(0, n),rep(-0.37,n))
 solve.QP(2*sigma.2, rep(0,n), A.mat, b, meq=1)
 }
 i = 0
