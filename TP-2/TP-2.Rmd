@@ -35,6 +35,7 @@ library(roll)
 library(Hmisc)
 library(nFactors)
 library(kableExtra)
+library(quadprog)
 
 get.src.folder <- function() {
   path.expand("../GP/src")
@@ -83,96 +84,18 @@ kable_styling(latex_options="scale_down")
 + Même calcul en ajoutant des contraintes supplémentaires qui vous semblent pertinentes 
 (ex: pas plus de 20\% de l'actif risqué alloué à un seul titre, etc.)
 
-```{r, tangent-2}
-# Risk-free rate
-r.f = 0.03
-cex.val <- 1.5
-# by formula
-mu <- colMeans(daily.ret)*252
-sigma <- cov(daily.ret)*252
-rho <- cor(daily.ret)
-sig2 <- sigma %*% t(sigma) * rho
-w.nom <- solve(sig2, mu-r.f)
-w.den <- sum(w.nom)
-w.t <- w.nom/sum(w.nom)
+Question 1:
 
-mu.t <- as.vector(t(mu) %*% w.t)
-sigma.t <- sqrt(t(w.t) %*% sig2 %*% w.t)
-```
+Afin de déterminer le portefeuille tangent, nous allons utiliser une méthode d'optimisation sous contraintes. Notre but est de trouver le pourcentage de notre investissement que nous allons attribuer à chaque actif en minimisant le risque (la volatilité) en fonction d'un objectif de rendement. 
 
-```{r, echo=FALSE}
-alpha <- seq(from=-0.4, to=1.4, by=0.1)
-
-w_1 <- matrix(rep(1/11, 11),11,1)
-w_2 <- 1 - w_1
-w <- w_1 %*% alpha + w_2 %*% (1-alpha)
-
-mu.frontier <- as.vector(t(mu) %*% w)
-sigma.frontier <- sqrt(diag(t(w) %*% sig2 %*% w))
-```
-
-```{r}
-plot(sigma.frontier, mu.frontier, type="b", pch=1, cex = .7,
-     ylim=c(0, max(mu.frontier)), xlim=c(0, max(sigma.frontier)),
-     xlab=expression(sigma), ylab=expression(mu), cex.lab = cex.val, bty='n')
-text(x=0.0, y=r.f, labels=expression(r[f]), pos=2, offset=0)
-text(x=sigma, y=mu, labels=assets, pos=4, cex = 1)
-text(x=sigma.t, y=mu.t, labels="Tangency", pos=2, offset=2)
-abline(a=r.f, b=(mu.t-r.f)/sigma.t, col='red', lty=2)
-```
-```{r, echo=FALSE}
-r.f = 0.03
-
-mu.star.v  <- seq(from=mu.free, to=0.35, length.out=30)
-mu <- colMeans(daily.ret)*252
-sigma <- cov(daily.ret)*252
-tickers <- c("AAPL", "AMZN", "MSFT", "F", "SPY", "QQQ", "XOM", "MMM", "HD", "PG", "KO")
+En premier lieu, il faut construire la frontière efficiente.
+En définissant les titres par leur rendement (moyenne) et leur niveau de risque (volatilité), on peut déterminer une frontière efficiente sur laquelle se situent les portefeuilles composés de titres individuels offrant le meilleur rendement pour un certain niveau de risque. 
+Pour ce faire, nous souhaitons minimiser la fonction quadratique 0.5 x transpose(poids) * matrice de covariance * poids sous les contraintes suivantes :
++ avoir la somme des poids égale à 1 pour préserver l'investissement
++ les poids des actifs risqués doivent être positifs pour adopter une stratégie 100% Long par rapport à tous les actifs détenus dans le portefeuille. 
++ la somme des rendements de chaque actif doit être égal à un rendement cible et arbitraire (comme démontré dans le cours) pour construire la courbe.
 
 
-n <- length(mu)
-
-
-optim.with.rf <- function(mu.star) {
- A.sum <- matrix(mu-r.f, ncol=1)
-A.mat <- cbind(A.sum,
-               rep(1, n),
-               diag(n))
-b <- c( mu.star,1, rep(0, n))
-solve.QP(2*sigma, rep(0,n), A.mat, b, meq=2)
-}
-
-
-
-sol.with.rf <- NULL
-for(mu.star in mu.star.v) {
-  qp <- optim.with.rf(mu.star)
-
-  sharpe <- (mu.star - mu.free) / sqrt(qp$value)
-  tmp <- matrix(c(mu.star, sqrt(qp$value), sharpe, qp$solution), nrow=1)
-
-if(is.null(sol.with.rf)) {
-  sol.with.rf <- tmp  
-} else {
-  sol.with.rf <- rbind(sol.with.rf, tmp)
-}
-}
-
-# tangency portfolio
-w.tangent <- matrix(qp$solution / sum(qp$solution), ncol=1)
-names(w.tangent) <- tickers
-sigma.tangent <- sqrt(t(w.tangent) %*% Sigma %*% w.tangent)
-
-colnames(sol.with.rf) <- c("mu", "stdev", "Sharpe", tickers)
-```
-
-```{r, echo=FALSE, fig.height=6}
-plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
-     ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
-lines(sol.with.rf[,"stdev"], sol.with.rf[,"mu"], type='l', col='green', lwd=2)
-for(i in seq_along(tickers)) {
-  text(sqrt(Sigma[i,i]), mu[i], tickers[i], cex=1.2, col="blue")
-}
-```
 ## Calcul de la Frontière (Long/Short)
 
 ```{r, echo=FALSE}
@@ -181,19 +104,19 @@ sigma <- cov(daily.ret)*252
 tickers <- c("AAPL", "AMZN", "MSFT", "F", "SPY", "QQQ", "XOM", "MMM", "HD", "PG", "KO")
 n <- length(mu)
 min.ret = 0.05
-mu.star <- seq(from=min.ret+abs(min(mu))/100, to=2*max(mu)-abs(max(mu))/100, length.out=100)
+mu.star <- seq(from=min.ret+abs(min(mu))/100, to=max(mu)-abs(max(mu))/100, length.out=200)
 mu.free <- 0.03
 
 sol <- NULL
 for(mu.s in mu.star) {
-  
+
 # constraints: 2 equality
 A.sum <- matrix(rep(1,n, ncol=1))
-A.mat <- cbind(A.sum, matrix(mu))
-b <- c(1, mu.s)
+A.mat <- cbind(A.sum, matrix(mu), diag(n))
+b <- c(1, mu.s, rep(0,n))
 qp <- solve.QP(2*sigma, rep(0,n), A.mat, b, meq=2)
 sharpe <- (mu.s - mu.free) / sqrt(qp$value)
-  tmp <- matrix(c(mu.s, sqrt(qp$value), sharpe, qp$solution), nrow=1)
+tmp <- matrix(c(mu.s, sqrt(qp$value), sharpe, qp$solution), nrow=1)
 
 if(is.null(sol)) {
   sol <- tmp  
@@ -223,18 +146,25 @@ chart.StackedBar(sol[, 3+seq_along(mu)], xaxis.labels=round(sol[,2],2),
 
 ## Ajout d'un actif sans risque
 
-```{r, tangent-long}
+Ensuite, pour construire le portefeuille tangent, il faut ajouter l'actif sans risque. Cet actif possède une variance (donc une volatilité) égale à 0 (car sans risque) et son rendement n'est pas corrélé à celui des autres actifs. Les différentes combinaisons de l'actif sans risque avec un autre actif donneront donc une différence de rendement linéaire en fonction du risque choisi. Nous fixons le rendement de l'actif sans risque à 0.03.
 
-mu.star.v  <- seq(from=mu.free, to=0.35, length.out=30)
+Nous employons la même méthode que pour tracer la frontière efficiente avec des contraintes différentes:
++ les poids doivent être supérieurs à 0 et inférieur à 1.
++ la somme  de la différence des rendements pour chaque actif avec le rendement de l'actif sans risque doit être égal à un rendement cible et arbitraire pour construire la courbe.
+
+
+
+```{r, tangent-long-first}
+
+mu.star.v  <- seq(from=mu.free, to=0.45, length.out=30)
 n <- length(mu)
 
 optim.with.rf <- function(mu.star) {
   A.sum <- matrix(mu-mu.free, ncol=1)
 A.mat <- cbind(A.sum, 
-               rep(1, n),
-               diag(n))
-b <- c(mu.star-mu.free, 1, rep(0, n))
-solve.QP(2*sigma, rep(0,n), A.mat, b, meq=2)
+               diag(n), -diag(n))
+b <- c(mu.star-mu.free,   rep(0, n), rep(-1,n))
+solve.QP(2*sigma, rep(0,n), A.mat, b, meq=1)
 }
 
 sol.with.rf <- NULL
@@ -253,7 +183,7 @@ if(is.null(sol.with.rf)) {
 
 # tangency portfolio
 w.tangent <- matrix(qp$solution / sum(qp$solution), ncol=1)
-names(w.tangent) <- tickers
+#names(w.tangent) <- tickers
 sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
 
 colnames(sol.with.rf) <- c("mu", "stdev", "Sharpe", tickers)
@@ -267,3 +197,124 @@ for(i in seq_along(tickers)) {
   text(sqrt(sigma[i,i]), mu[i], tickers[i], cex=1.2, col="blue")
 }
 ```
+```{r, echo=FALSE, fig.height=6}
+rownames(w.tangent) <- tickers
+colnames(w.tangent) <- c('w')
+w.tangent
+```
+Nous remarquons que pour construire le portefeuille tangent nous avons besoin quasiment que de 4 actifs (AAPL, AMZN, HD, KO), les autres ayant des poids proches de 0. 
+
+
+Question 2:
+
+
+Pour diversifier davantage le portefeuille, nous pouvons ajouter des contraintes supplémentaires. Nous avons implémenter différentes contraintes. La première, nous forçons le poids des actifs à être inférieur à 37% de l'investissement total.
+
+
+```{r, tangent-long-second}
+
+mu.star.v  <- seq(from=mu.free, to=0.35, length.out=30)
+
+
+optim.with.rf.constrains <- function(mu.star) {
+  A.sum <- matrix(mu-mu.free, ncol=1)
+A.mat <- cbind(A.sum, diag(n), -diag(n))
+b <- c(mu.star-mu.free,rep(0,n), rep(-0.37,n))
+solve.QP(2*sigma, rep(0,n), A.mat, b, meq=1)
+}
+
+sol.with.rf.constrains <- NULL
+for(mu.star in mu.star.v) {
+  qp <- optim.with.rf.constrains(mu.star)
+
+  sharpe <- (mu.star - mu.free) / sqrt(qp$value)
+  tmp <- matrix(c(mu.star, sqrt(qp$value), sharpe, qp$solution), nrow=1)
+
+if(is.null(sol.with.rf.constrains)) {
+  sol.with.rf.constrains <- tmp  
+} else {
+  sol.with.rf.constrains <- rbind(sol.with.rf.constrains, tmp)
+}
+}
+
+# tangency portfolio
+w.tangent <- matrix(qp$solution / sum(qp$solution), ncol=1)
+#names(w.tangent) <- tickers
+sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
+
+colnames(sol.with.rf.constrains) <- c("mu", "stdev", "Sharpe", tickers)
+```
+
+```{r, echo=FALSE, fig.height=6}
+plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
+     ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
+lines(sol.with.rf.constrains[,"stdev"], sol.with.rf.constrains[,"mu"], type='l', col='green', lwd=2)
+
+for(i in seq_along(tickers)) {
+  text(sqrt(sigma[i,i]), mu[i], tickers[i], cex=1.2, col="blue")
+}
+```
+```{r, echo=FALSE, fig.height=6}
+rownames(w.tangent) <- tickers
+colnames(w.tangent) <- c('w')
+w.tangent
+```
+
+Nous remarquons que pour construire le portefeuille tangent nous avons besoin de 5 actifs (AAPL, AMZN, MSFT, HD, KO), les autres étant proches de 0. 
+
+La deuxième méthode consiste à majorer et minorer les poids des actifs par, respectivement, (rendement arbitraire - rendement sans risque)/40 et 47%.
+
+```{r, tangent-long-third}
+
+mu.star.v  <- seq(from=mu.free, to=0.5, length.out=30)
+
+
+optim.with.rf.constrains <- function(mu.star) {
+  A.sum <- matrix(mu-mu.free, ncol=1)
+A.mat <- cbind(A.sum, diag(n), -diag(n))
+b <- c(mu.star-mu.free,rep((mu.star-mu.free)/40,n), rep(-0.47,n))
+solve.QP(2*sigma, rep(0,n), A.mat, b, meq=1)
+}
+
+sol.with.rf.constrains <- NULL
+for(mu.star in mu.star.v) {
+  qp <- optim.with.rf.constrains(mu.star)
+
+  sharpe <- (mu.star - mu.free) / sqrt(qp$value)
+  tmp <- matrix(c(mu.star, sqrt(qp$value), sharpe, qp$solution), nrow=1)
+
+if(is.null(sol.with.rf.constrains)) {
+  sol.with.rf.constrains <- tmp  
+} else {
+  sol.with.rf.constrains <- rbind(sol.with.rf.constrains, tmp)
+}
+}
+
+# tangency portfolio
+w.tangent <- matrix(qp$solution / sum(qp$solution), ncol=1)
+#names(w.tangent) <- tickers
+sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
+
+colnames(sol.with.rf.constrains) <- c("mu", "stdev", "Sharpe", tickers)
+```
+
+```{r, echo=FALSE, fig.height=6}
+plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
+     ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
+lines(sol.with.rf.constrains[,"stdev"], sol.with.rf.constrains[,"mu"], type='l', col='green', lwd=2)
+
+for(i in seq_along(tickers)) {
+  text(sqrt(sigma[i,i]), mu[i], tickers[i], cex=1.2, col="blue")
+}
+```
+
+
+```{r, echo=FALSE, fig.height=6}
+rownames(w.tangent) <- tickers
+colnames(w.tangent) <- c('w')
+w.tangent
+```
+
+Nous remarquons que le portefeuille tangent est constitué de la  totalité des actifs. 
+
+
