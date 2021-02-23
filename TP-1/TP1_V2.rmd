@@ -140,9 +140,11 @@ CAClev <- as.zoo(ts.all)[, c("bnp.pa", "gle.pa", "aca.pa")]
 CAC40 <- diff(log(CAClev)) * 100
 rcor <- rollapply(CAClev, width = 10, rollc, align = "right",by.column = FALSE)
 colnames(rcor) <- c("BNPP & SGCIB", "BNPP & CACIB", "CACIB & SGCIB") 
-#plot(rcor, rcor[,0], main = " ", xlab = " ", ) 
-plot(zoo(rcor~as.Date(rcor[,0],"%Y-%m-%d")))
+```
 
+```{r, fig-5, echo=FALSE, fig.width=15, fig.cap="zooplot"}
+index(rcor) = as.Date(date(index(rcor)), "%Y-%m-%d")
+plot(rcor,main = "The correlation between banking sector actions",xlab = "Date",cex.axis = 2)
 ```
 
 
