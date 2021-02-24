@@ -139,9 +139,16 @@ return(rcor)
 CAClev <- as.zoo(ts.all)[, c("bnp.pa", "gle.pa", "aca.pa")]
 rcor <- rollapply(CAClev, width = 10, rollc, align = "right",by.column = FALSE)
 colnames(rcor) <- c("BNPP & SGCIB", "BNPP & CACIB", "CACIB & SGCIB") 
+<<<<<<< HEAD
 index(rcor) = as.Date(date(index(rcor)), "%Y-%m-%d")
 plot(rcor,main = "The correlation between banking sector actions",xlab = "Date",cex.axis = 2)
+=======
+```
+>>>>>>> 554647608414fb2eb4eb7ca521897c4a4bbbb606
 
+```{r, fig-5, echo=FALSE, fig.width=15, fig.cap="zooplot"}
+index(rcor) = as.Date(date(index(rcor)), "%Y-%m-%d")
+plot(rcor,main = "The correlation between banking sector actions",xlab = "Date",cex.axis = 2)
 ```
 ```{r}
 colMeans(rcor)
