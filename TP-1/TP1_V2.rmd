@@ -137,24 +137,66 @@ rcor <- cor(x)[lower.tri(diag(dim), diag = FALSE)]
 return(rcor) 
 } 
 CAClev <- as.zoo(ts.all)[, c("bnp.pa", "gle.pa", "aca.pa")]
-CAC40 <- diff(log(CAClev)) * 100
 rcor <- rollapply(CAClev, width = 10, rollc, align = "right",by.column = FALSE)
 colnames(rcor) <- c("BNPP & SGCIB", "BNPP & CACIB", "CACIB & SGCIB") 
-#plot(rcor, rcor[,0], main = " ", xlab = " ", ) 
-plot(zoo(rcor~as.Date(rcor[,0],"%Y-%m-%d")))
+index(rcor) = as.Date(date(index(rcor)), "%Y-%m-%d")
+plot(rcor,main = "The correlation between banking sector actions",xlab = "Date",cex.axis = 2)
 
 ```
+```{r}
+colMeans(rcor)
+```
+Les 3 entreprises choisies sont du même secteur d'activités. Leur corrélation dans le temps est comprise entre 0.4 et 0.9 (avec un pic à -0.2) avec une moyenne d'environ 0.75. Elle est donc forte.Nous observons une même tendance d'un graphe à l'autre. En effet, lorsque la corrélation augemente entre CACIB et Société Générale CIB, elle augmente également entre BNP CIB et Société générale, et inversement. 
+
+
+```{r, fig-5, warning=FALSE, echo=FALSE, fig.width=20, fig.cap="Correl"}
+
+CAClev <- as.zoo(ts.all)[, c("ker.pa", "bn.pa", "ora.pa")]
+rcor <- rollapply(CAClev, width = 10, rollc, align = "right",by.column = FALSE)
+colnames(rcor) <- c("KERING & DANONE", "KERING & ORANGE", "ORANGE & DANONE") 
+index(rcor) = as.Date(date(index(rcor)), "%Y-%m-%d")
+plot(rcor,main = "The correlation between banking sector actions",xlab = "Date",cex.axis = 2)
+```
+
+```{r}
+colMeans(rcor)
+```
+Dans la première figure, nous avons étudié les corrélations de 3 banques: BNP, CACIB et SGCIB. Nous notons que leurs courbes sont assez semblables, et que leurs corrélations sont similaires (environ 0.7). Dans la deuxième figure, où nous avons pris 3 entreprises de capitalisations et secteurs différents (Danone, Kering et Orange) les courbes ne suivent pas forcément les mêmes trajectoires, et les corrélations sont bien plus faibles (de l'ordre de 0.2). Ces résultats confirment nos observations de la question précédente.
 
 
 
 ## Question 4
-```{r, fig-4, warning = FALSE, echo=FALSE, fig.width=15, fig.cap="COV"}
-mat_cov_cac40 = cov(ts.all, method = c("pearson", "kendall", "spearman"))
+ 
+```{r, fig-6, warning = FALSE, echo=FALSE, fig.width=15, fig.cap="COV"}
+mat_cov_cac40 = cov(ts.all.weekly, method = c("pearson", "kendall", "spearman"))
 PCA(mat_cov_cac40,scale.unit = TRUE, ncp = 5, graph = TRUE)
 pca = prcomp(mat_cov_cac40)
 variance_prop = 100 * pca$sdev^2 / sum(pca$sdev^2) 
-plot(pca)
-print(pca$x)
-plot(pca$x[,1:2])
+
 ```
-On peut remarquer d'après l'observation de la projection sur les deux premières composantes principales que quasiment toute la variance est concentré dans la première composante. Par conséquent, la réplication de l'indice est la seule chose possible pour répliquer tous les stocks qui le constituent.
+```{r, echo=TRUE}
+nb.ev <- 6
+
+mat.cov.pca <- cov(ts.all.weekly)
+res.pca.1 <- prcomp(mat.cov.pca, scale=TRUE)
+
+norm.ev <- res.pca.1$sdev^2
+norm.ev <- norm.ev/sum(norm.ev)
+
+large.ev.1 <- norm.ev[1:nb.ev]
+names(large.ev.1) <- paste("PC", seq_along(large.ev.1))
+```
+
+```{r, cor-4, echo=FALSE, fig.height=5}
+plot.1 <- barplot(100*large.ev.1, ylim=c(0,60), col="blue", ylab="Contribution (%)",
+                  main="First PCs of CAC 40")
+ 
+```
+
+```{r, echo=TRUE}
+print(res.pca.1$x[,c('PC1','PC2')])
+```
+Nous remarquons que les deux premières composantes contiennent plus de 96% de l'information notamment 78% de la variance est concentrée dans la première composante. Ainsi la première composante représente une forte partie du CAC40. 
+Sur le graphe, PCA graph of variables, nous remarquons que la plupart des actifs sont colinéaires à la première composante. En effet, ces actifs suivent la tendance du marché qui est représentée par le CAC40 et donc la première composante.
+
+
