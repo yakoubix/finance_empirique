@@ -84,7 +84,7 @@ kable_styling(latex_options="scale_down")
 + Même calcul en ajoutant des contraintes supplémentaires qui vous semblent pertinentes 
 (ex: pas plus de 20\% de l'actif risqué alloué à un seul titre, etc.)
 
-Question 1:
+## Question 1:
 
 Afin de déterminer le portefeuille tangent, nous allons utiliser une méthode d'optimisation sous contraintes. Notre but est de trouver le pourcentage de notre investissement que nous allons attribuer à chaque actif en minimisant le risque (la volatilité) en fonction d'un objectif de rendement. 
 
@@ -96,7 +96,7 @@ Pour ce faire, nous souhaitons minimiser la fonction quadratique 0.5 x transpose
 + la somme des rendements de chaque actif doit être égal à un rendement cible et arbitraire (comme démontré dans le cours) pour construire la courbe.
 
 
-## Calcul de la Frontière (Long/Short)
+
 
 ```{r, echo=FALSE}
 mu <- colMeans(daily.ret)*252
@@ -128,7 +128,7 @@ if(is.null(sol)) {
 colnames(sol) <- c("mu", "stdev", "Sharpe", tickers)
 ```
 
-```{r, echo=FALSE, fig.height=6}
+```{r, fig-1,echo=FALSE, fig.height=6, fig.cap = 'Frontière efficiente pour une stratégie longue sans actif risqué'}
 plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
      ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
 
@@ -137,14 +137,14 @@ for(i in seq_along(tickers)) {
 }
 ```
 
-## Allocation en fonction du risque
 
-```{r, echo=FALSE, fig.height=6}
+
+```{r, fig-2, echo=FALSE, fig.height=6, fig.cap = 'Allocation des actifs en fonction du risque'}
 chart.StackedBar(sol[, 3+seq_along(mu)], xaxis.labels=round(sol[,2],2), 
                  xlab="SD Portefeuille", ylab="Allocation")
 ```
 
-## Ajout d'un actif sans risque
+
 
 Ensuite, pour construire le portefeuille tangent, il faut ajouter l'actif sans risque. Cet actif possède une variance (donc une volatilité) égale à 0 (car sans risque) et son rendement n'est pas corrélé à celui des autres actifs. Les différentes combinaisons de l'actif sans risque avec un autre actif donneront donc une différence de rendement linéaire en fonction du risque choisi. Nous fixons le rendement de l'actif sans risque à 0.03.
 
@@ -189,7 +189,7 @@ sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
 colnames(sol.with.rf) <- c("mu", "stdev", "Sharpe", tickers)
 ```
 
-```{r, echo=FALSE, fig.height=6}
+```{r, fig-3, echo=FALSE, fig.height=6, fig.cap = "Portefeuille tangent avec stratégie long et ajout d'actif sans rique"}
 plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
      ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
 lines(sol.with.rf[,"stdev"], sol.with.rf[,"mu"], type='l', col='green', lwd=2)
@@ -205,7 +205,7 @@ w.tangent
 Nous remarquons que pour construire le portefeuille tangent nous avons besoin quasiment que de 4 actifs (AAPL, AMZN, HD, KO), les autres ayant des poids proches de 0. 
 
 
-Question 2:
+## Question 2:
 
 
 Pour diversifier davantage le portefeuille, nous pouvons ajouter des contraintes supplémentaires. Nous avons implémenter différentes contraintes. La première, nous forçons le poids des actifs à être inférieur à 37% de l'investissement total.
@@ -245,7 +245,7 @@ sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
 colnames(sol.with.rf.constrains) <- c("mu", "stdev", "Sharpe", tickers)
 ```
 
-```{r, echo=FALSE, fig.height=6}
+```{r, fig-4, echo=FALSE, fig.height=6, fig.cap = 'Methode 1 - Portefeuille tangent avec ajout de contraintes'}
 plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
      ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
 lines(sol.with.rf.constrains[,"stdev"], sol.with.rf.constrains[,"mu"], type='l', col='green', lwd=2)
@@ -254,7 +254,7 @@ for(i in seq_along(tickers)) {
   text(sqrt(sigma[i,i]), mu[i], tickers[i], cex=1.2, col="blue")
 }
 ```
-```{r, echo=FALSE, fig.height=6}
+```{r, echo=FALSE}
 rownames(w.tangent) <- tickers
 colnames(w.tangent) <- c('w')
 w.tangent
@@ -298,7 +298,7 @@ sigma.tangent <- sqrt(t(w.tangent) %*% sigma %*% w.tangent)
 colnames(sol.with.rf.constrains) <- c("mu", "stdev", "Sharpe", tickers)
 ```
 
-```{r, echo=FALSE, fig.height=6}
+```{r, fig-5, echo=FALSE, fig.height=6, fig.cap = 'Methode 2 -Portefeuille tangent avec ajout de contraintes'}
 plot(sol[,"stdev"], sol[,"mu"], type='l', col='red', lwd=2, xlab=expression(sigma), ylab=expression(mu),
      ylim=c(0, 0.40), xlim=c(.0, 0.40), bty='n', cex.lab=1.5)
 lines(sol.with.rf.constrains[,"stdev"], sol.with.rf.constrains[,"mu"], type='l', col='green', lwd=2)
@@ -309,7 +309,7 @@ for(i in seq_along(tickers)) {
 ```
 
 
-```{r, echo=FALSE, fig.height=6}
+```{r, echo=FALSE}
 rownames(w.tangent) <- tickers
 colnames(w.tangent) <- c('w')
 w.tangent
